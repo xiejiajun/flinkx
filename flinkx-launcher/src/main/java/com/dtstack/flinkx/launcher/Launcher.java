@@ -116,6 +116,13 @@ public class Launcher {
         }
     }
 
+    /**
+     * TODO 非Local模式也是将com.dtstack.flinkx.Main作为Flink应用的入口的
+     * @param launcherOptions
+     * @param remoteArgs
+     * @return
+     * @throws Exception
+     */
     private static JobGraph buildJobGraph(Options launcherOptions, String[] remoteArgs) throws Exception {
         String pluginRoot = launcherOptions.getPluginRoot();
         String content = launcherOptions.getJob();

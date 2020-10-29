@@ -45,14 +45,31 @@ public class ClassLoaderManager {
 
     private static Map<String, URLClassLoader> pluginClassLoader = new ConcurrentHashMap<>();
 
+
+    /**
+     * 构建插件对象
+     * @param jarUrls: 插件jar包url列表
+     * @param supplier: 使用指定类加载器构建对象的函数
+     * @param <R>
+     * @return
+     * @throws Exception
+     */
     public static <R> R newInstance(Set<URL> jarUrls, ClassLoaderSupplier<R> supplier) throws Exception {
+        // TODO 获取类加载器
         ClassLoader classLoader = retrieveClassLoad(new ArrayList<>(jarUrls));
         return ClassLoaderSupplierCallBack.callbackAndReset(supplier, classLoader);
     }
 
+    /**
+     * 根据url列表构建类加载器
+     * @param jarUrls
+     * @return
+     */
     private static URLClassLoader retrieveClassLoad(List<URL> jarUrls) {
         jarUrls.sort(Comparator.comparing(URL::toString));
         String jarUrlkey = StringUtils.join(jarUrls, "_");
+        // TODO 根据url列表获取类加载器，获取不到就创建（虽然不同url列表得到的类加载器不同，但是他们的parentClassLoader是一样的，都是主线程
+        //  的上下文类加载器，所以公共依赖不会重复加载
         return pluginClassLoader.computeIfAbsent(jarUrlkey, k -> {
             try {
                 URL[] urls = jarUrls.toArray(new URL[0]);

@@ -113,6 +113,7 @@ public class Main {
         SpeedConfig speedConfig = config.getJob().getSetting().getSpeed();
 
         env.setParallelism(speedConfig.getChannel());
+        // TODO 构建Reader
         BaseDataReader dataReader = DataReaderFactory.getDataReader(config, env);
         DataStream<Row> dataStream = dataReader.readData();
         if(speedConfig.getReaderChannel() > 0){
@@ -123,6 +124,7 @@ public class Main {
             dataStream = dataStream.rebalance();
         }
 
+        // TODO 构建writer
         BaseDataWriter dataWriter = DataWriterFactory.getDataWriter(config);
         DataStreamSink<?> dataStreamSink = dataWriter.writeData(dataStream);
         if(speedConfig.getWriterChannel() > 0){
@@ -135,8 +137,10 @@ public class Main {
             }
         }
 
+        // TODO 将classPath添加到Flink Env
         addEnvClassPath(env, ClassLoaderManager.getClassPath());
 
+        // TODO 启动作业
         JobExecutionResult result = env.execute(jobIdString);
         if(env instanceof MyLocalStreamEnvironment){
             ResultPrintUtil.printResult(result);

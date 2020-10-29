@@ -26,6 +26,14 @@ package com.dtstack.flinkx.classloader;
  */
 public class ClassLoaderSupplierCallBack {
 
+    /**
+     * 切换上下文类加载器并加载构建插件实例(这里不切换应该也没问题？）
+     * @param supplier
+     * @param toSetClassLoader
+     * @param <R>
+     * @return
+     * @throws Exception
+     */
     public static <R> R callbackAndReset(ClassLoaderSupplier<R> supplier, ClassLoader toSetClassLoader) throws Exception {
         ClassLoader oldClassLoader = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(toSetClassLoader);
