@@ -165,6 +165,8 @@ public class HdfsOrcOutputFormat extends BaseHdfsOutputFormat {
         }
 
         try {
+            // TODO 例如OrcRecordWriter.write会自动根据配置创建FileSystem来构建写HDFS的WriterImpl
+            //   OrcFile.createWriter ->
             this.recordWriter.write(NullWritable.get(), this.orcSerde.serialize(recordList, this.inspector));
             rowsOfCurrentBlock++;
 
