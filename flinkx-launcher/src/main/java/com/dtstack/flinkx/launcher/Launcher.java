@@ -136,6 +136,7 @@ public class Launcher {
         PackagedProgram program = PackagedProgram.newBuilder()
                 .setJarFile(jarFile)
                 .setUserClassPaths(urlList)
+                // TODO 设置com.dtstack.flinkx.Main为任务启动入口
                 .setEntryPointClassName(MAIN_CLASS)
                 .setConfiguration(launcherOptions.loadFlinkConfiguration())
                 .setSavepointRestoreSettings(savepointRestoreSettings)

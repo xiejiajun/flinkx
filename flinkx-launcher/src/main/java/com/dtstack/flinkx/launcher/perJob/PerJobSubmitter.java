@@ -62,6 +62,7 @@ public class PerJobSubmitter {
         File jarFile = new File(pluginRoot + File.separator + getCoreJarFileName(pluginRoot));
         clusterSpecification.setConfiguration(launcherOptions.loadFlinkConfiguration());
         clusterSpecification.setClasspaths(analyzeUserClasspath(launcherOptions.getJob(), pluginRoot));
+        // TODO 设置com.dtstack.flinkx.Main为任务启动入口
         clusterSpecification.setEntryPointClass(MAIN_CLASS);
         clusterSpecification.setJarFile(jarFile);
 
