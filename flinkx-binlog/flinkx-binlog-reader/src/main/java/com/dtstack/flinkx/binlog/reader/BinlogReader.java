@@ -26,6 +26,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.types.Row;
 
 /**
+ * TODO 读取binlog的插件标记
  * @company: www.dtstack.com
  * @author: toutian
  * @create: 2019/7/4
