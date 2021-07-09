@@ -48,6 +48,11 @@ public class BigIntegerMaximum implements SimpleAccumulator<BigInteger> {
         return this.max;
     }
 
+    /**
+     * TODO 在作业结束时/client请求读取累加器的值时，JM会触发调用该方法合并所有subTask的当前累加器的值，
+     *   合并完后这里的max其实就是所有subTask的max的最大值
+     * @param other
+     */
     @Override
     public void merge(Accumulator<BigInteger, BigInteger> other) {
         if(this.max.compareTo(other.getLocalValue()) < 0){

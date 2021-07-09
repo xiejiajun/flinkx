@@ -375,6 +375,7 @@ public abstract class BaseRichInputFormat extends org.apache.flink.api.common.io
             accumulatorCollector.close();
         }
 
+        // TODO org.apache.flink.api.common.io.RichInputFormat.closeInputFormat被调用是上报指标
         if (useCustomPrometheusReporter() && null != customPrometheusReporter) {
             customPrometheusReporter.report();
         }

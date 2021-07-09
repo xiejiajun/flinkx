@@ -129,6 +129,7 @@ public class CustomPrometheusReporter {
     public void open() {
         String host = configuration.getString(KEY_HOST, null);
         int port = configuration.getInteger(KEY_PORT, 0);
+        // TODO指标 名称
         String configuredJobName = configuration.getString(KEY_JOB_NAME, "jiangboJob");
         boolean randomSuffix = configuration.getBoolean(KEY_RANDOM_JOB_NAME_SUFFIX, false);
         deleteOnShutdown = configuration.getBoolean(KEY_DELETE_ON_SHUTDOWN, true);
@@ -148,16 +149,37 @@ public class CustomPrometheusReporter {
                 host, port, jobName, randomSuffix, deleteOnShutdown);
     }
 
+    /**
+     * TODO 注册指标
+     * @param accumulator
+     * @param name
+     */
     public void registerMetric(Accumulator accumulator, String name) {
         name = Metrics.METRIC_GROUP_KEY_FLINKX + "_" + name;
         ReporterScopedSettings reporterScopedSettings = new ReporterScopedSettings(0, ',', Collections.emptySet());
         FrontMetricGroup front = new FrontMetricGroup<AbstractMetricGroup<?>>(reporterScopedSettings, (AbstractMetricGroup)context.getMetricGroup());
+
+        // TODO 指标值为累加器accumulator的getLocalValue，由于是在Job结束才进行上报，所以这个localValue那时候已经由JM触发merge，
+        //   所以上报的是累加器的全局结果，具体是啥结果要看累加器的merge方法实现逻辑
         notifyOfAddedMetric(new SimpleAccumulatorGauge<>(accumulator), name, front);
     }
 
     public void report() {
         try {
             if (null != pushGateway) {
+                // TODO 推送defaultRegistry中注册的指标
+                //  以上报Gauge指标为例：  pushGateway.push -> doRequest -> TextFormat.write004(writer, registry.metricFamilySamples()) -> writer.flush()
+                //    registry.metricFamilySamples(这里是重点) -> new MetricFamilySamplesEnumeration(能访问到defaultRegistry对象属性的内部类)
+                //      -> CollectorRegistry.MetricFamilySamplesEnumeration.includedCollectorIterator
+                //      -> io.prometheus.client.CollectorRegistry.collectors().iterator()
+                //      -> io.prometheus.client.CollectorRegistry.MetricFamilySamplesEnumeration.findNextElement
+                //      -> collectorIter.next().collect() -> io.prometheus.client.Gauge.collect
+                //      -> c.getValue().get() -> io.prometheus.client.Gauge.Child.get(CustomPrometheusReporter.gaugeFrom创建的child)
+                //      -> gauge.getValue() -> CustomPrometheusReporter.registerMetric注册的SimpleAccumulatorGauge.getValue
+                //      -> accumulator.getLocalValue(): 所以prometheus pushGateWay上报的是通过CustomPrometheusReporter.registerMetric
+                //      注册的累加器的localValue
+                //  TODO 这里上报的虽然是当前subTask的指标，但是由于是在Job结束才进行上报，所以这个localValue那时候已经由JM触发merge，
+                //        所以上报的是累加器的全局结果，具体是啥结果要看累加器的merge方法实现逻辑
                 pushGateway.push(defaultRegistry, jobName);
                 LOG.info("push metrics to PushGateway with jobName {}.", jobName);
             }
@@ -184,6 +206,7 @@ public class CustomPrometheusReporter {
         metricHashMap.put(metricName, metric);
 
         List<String> dimensionKeys = new LinkedList<>();
+        // TODO 维度值列表
         List<String> dimensionValues = new LinkedList<>();
         for (final Map.Entry<String, String> dimension : group.getAllVariables().entrySet()) {
             final String key = dimension.getKey();
@@ -209,11 +232,13 @@ public class CustomPrometheusReporter {
                 }
 
                 try {
+                    // TODO 将collector注册到Prometheus的CollectorRegistry，方便pushGateWay推送指标
                     collector.register(defaultRegistry);
                 } catch (Exception e) {
                     LOG.warn("There was a problem registering metric {}.", metricName, e);
                 }
             }
+            // TODO 往collector注册指标拉取回调
             addMetric(metric, dimensionValues, collector);
             collectorsWithCountByMetricName.put(scopedMetricName, new AbstractMap.SimpleImmutableEntry<>(collector, count + 1));
         }
@@ -244,12 +269,16 @@ public class CustomPrometheusReporter {
 
     private void addMetric(Metric metric, List<String> dimensionValues, Collector collector) {
         if (metric instanceof Gauge) {
+            // TODO 注册guage指标拉取回调
             ((io.prometheus.client.Gauge) collector).setChild(gaugeFrom((Gauge) metric), toArray(dimensionValues));
         } else if (metric instanceof Counter) {
+            // TODO 注册计数器指标拉取回调
             ((io.prometheus.client.Gauge) collector).setChild(gaugeFrom((Counter) metric), toArray(dimensionValues));
         } else if (metric instanceof Meter) {
+            // TODO 注册仪表指标拉取回调
             ((io.prometheus.client.Gauge) collector).setChild(gaugeFrom((Meter) metric), toArray(dimensionValues));
         } else if (metric instanceof Histogram) {
+            // TODO 注册直方图指标拉取回调
             ((HistogramSummaryProxy) collector).addChild((Histogram) metric, dimensionValues);
         } else {
             LOG.warn("Cannot add unknown metric type: {}. This indicates that the metric type is not supported by this reporter.",
