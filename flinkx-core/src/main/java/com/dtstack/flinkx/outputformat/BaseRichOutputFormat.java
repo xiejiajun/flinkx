@@ -333,8 +333,16 @@ public abstract class BaseRichOutputFormat extends org.apache.flink.api.common.i
 
     }
 
+    /**
+     * TODO 写出单条记录
+     * @param row
+     */
     protected void writeSingleRecord(Row row) {
         if(errorLimiter != null) {
+            // TODO 错误控制是基于Flink的累加器，运行过程中记录出错的记录数，
+            //  然后在单独的线程里定时判断错误的记录数是否已经超出配置的最大值，
+            //  如果超出，则抛出异常使任务失败。这样可以对数据精确度要求不同的任务，
+            //  做不同的错误控制
             errorLimiter.acquire();
         }
 
@@ -347,12 +355,14 @@ public abstract class BaseRichOutputFormat extends org.apache.flink.api.common.i
             }
         } catch(WriteRecordException e) {
             saveErrorData(row, e);
+            // TODO 写脏数据到HDFS
             updateStatisticsOfDirtyData(row, e);
             // 总记录数加1
             numWriteCounter.add(1);
             snapshotWriteCounter.add(1);
 
             if(dirtyDataManager == null && errCounter.getLocalValue() % LOG_PRINT_INTERNAL == 0){
+                // TODO 没配置dirtyDataManager的情况下输出日志，最大2000行
                 LOG.error(e.getMessage());
             }
             if(DtLogger.isEnableTrace()){
@@ -382,6 +392,7 @@ public abstract class BaseRichOutputFormat extends org.apache.flink.api.common.i
 
     private void updateStatisticsOfDirtyData(Row row, WriteRecordException e){
         if(dirtyDataManager != null) {
+            // TODO 写出脏数据
             String errorType = dirtyDataManager.writeData(row, e);
             if (ERR_NULL_POINTER.equals(errorType)){
                 nullErrCounter.add(1);
@@ -427,6 +438,9 @@ public abstract class BaseRichOutputFormat extends org.apache.flink.api.common.i
         throw new UnsupportedOperationException(writerName + "不支持批量写入");
     }
 
+    /**
+     * 批量写出多条记录
+     */
     protected void writeRecordInternal() {
         try {
             writeMultipleRecords();
@@ -434,6 +448,7 @@ public abstract class BaseRichOutputFormat extends org.apache.flink.api.common.i
             if(restoreConfig.isRestore()){
                 throw new RuntimeException(e);
             } else {
+                // TODO 批量写失败尝试单条写，主要是应对那些不支持批量写的插件
                 rows.forEach(this::writeSingleRecord);
             }
         }

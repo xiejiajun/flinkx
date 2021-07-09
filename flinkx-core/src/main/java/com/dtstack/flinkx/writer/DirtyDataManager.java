@@ -80,6 +80,12 @@ public class DirtyDataManager {
         this.jobId = jobId;
     }
 
+    /**
+     * TODO 脏数据写到HDFS
+     * @param row
+     * @param ex
+     * @return
+     */
     public String writeData(Row row, WriteRecordException ex) {
         String content = RowUtil.rowToJson(row, fieldNames);
         String errorType = retrieveCategory(ex);

@@ -107,6 +107,7 @@ public class DtOutputFormatSinkFunction<IN> extends OutputFormatSinkFunction<IN>
     @Override
     public void invoke(IN record) throws Exception {
         try {
+            // TODO 数据写出
             format.writeRecord(record);
         } catch (Exception ex) {
             cleanup();

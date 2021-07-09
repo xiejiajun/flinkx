@@ -62,8 +62,10 @@ public class ErrorLimiter {
             errorDataStr = errorData.toString() + "\n";
         }
 
+        // TODO 获取当前错误数全局值，全局值在AccumulatorCollector.start时又一个线程定时刷新
         long errors = accumulatorCollector.getAccumulatorValue(Metrics.NUM_ERRORS);
         if(maxErrors != null){
+            // TODO 当前错误数errors大于最大允许的错误数maxErrors则抛出异常终止Job
             Preconditions.checkArgument(errors <= maxErrors, "WritingRecordError: error writing record [" + errors + "] exceed limit [" + maxErrors
                     + "]\n" + errorDataStr + errMsg);
         }
@@ -71,9 +73,11 @@ public class ErrorLimiter {
         if(maxErrorRatio != null){
             long numRead = accumulatorCollector.getAccumulatorValue(Metrics.NUM_READS);
             if(numRead >= 1) {
+                // TODO  错误率 = 错误数 / 当前读取过的总记录数
                 errorRatio = (double) errors / numRead;
             }
 
+            // TODO 错误率当前errorRatio大于最大允许错误率maxErrorRatio则抛出异常终止Job
             Preconditions.checkArgument(errorRatio <= maxErrorRatio, "WritingRecordError: error writing record ratio [" + errorRatio + "] exceed limit [" + maxErrorRatio
                     + "]\n" + errorDataStr + errMsg);
         }
