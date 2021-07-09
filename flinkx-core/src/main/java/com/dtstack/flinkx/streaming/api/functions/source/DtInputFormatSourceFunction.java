@@ -137,18 +137,24 @@ public class DtInputFormatSourceFunction<OUT> extends InputFormatSourceFunction<
 				// was called by checking the isRunning flag
 
 				// TODO JdbcInputFormat/BaseHdfsInputFormat.reachedEnd等
+				//   实时任务和离线任务的处理逻辑区别在于format.reachedEnd()，离线任务在数据结束后会返回true，停止发送事件等待Job退出
+				//   实时任务format.reachedEnd()总是为false，会一致轮询等待新的数据到来，然后往下发
 				while (isRunning && !format.reachedEnd()) {
 				    if(isStream){
+				    	// 实时任务
 				    	// TODO BaseRichInputFormat.nextRecord: 处理记录
                         nextElement = format.nextRecord(nextElement);
                         if (nextElement != null) {
+                        	// TODO 往下游算子发送数据
                             ctx.collect(nextElement);
                         }
                     } else {
+				    	// 离线任务
                         synchronized (ctx.getCheckpointLock()){
 							// TODO BaseRichInputFormat.nextRecord: 处理记录
                             nextElement = format.nextRecord(nextElement);
                             if (nextElement != null) {
+								// TODO 往下游算子发送数据
                                 ctx.collect(nextElement);
                             }
                         }
@@ -160,7 +166,7 @@ public class DtInputFormatSourceFunction<OUT> extends InputFormatSourceFunction<
 				completedSplitsCounter.inc();
 
 				if (isRunning) {
-					// TODO 判断是否还有分片
+					// TODO 判断是否还有分片，
 					isRunning = splitIterator.hasNext();
 				}
 			}
