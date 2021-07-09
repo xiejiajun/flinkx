@@ -57,6 +57,7 @@ public class SimpleLongCounterMeterView implements Meter, View {
 
 	public SimpleLongCounterMeterView(LongCounter counter, int timeSpanInSeconds) {
 		this.counter = counter;
+		// TODO 计算平均值的时间跨度
 		this.timeSpanInSeconds = timeSpanInSeconds - (timeSpanInSeconds % UPDATE_INTERVAL_SECONDS);
 		this.values = new long[this.timeSpanInSeconds / UPDATE_INTERVAL_SECONDS + 1];
 	}

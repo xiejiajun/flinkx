@@ -40,8 +40,14 @@ public class BaseMetric {
 
     private Long delayPeriodMill = 20000L;
 
+    /**
+     * 指标Group
+     */
     private MetricGroup flinkxOutput;
 
+    /**
+     * 保存指标名称 -> 指标累加器的映射
+     */
     private final Map<String, LongCounter> metricCounters = new HashMap<>();
 
     public BaseMetric(RuntimeContext runtimeContext) {
@@ -54,8 +60,10 @@ public class BaseMetric {
 
     public void addMetric(String metricName, LongCounter counter, boolean meterView){
         metricCounters.put(metricName, counter);
+        // TODO 注册计算某个时间点的counter值的gauge类型指标
         flinkxOutput.gauge(metricName, new SimpleAccumulatorGauge<>(counter));
         if (meterView){
+            // TODO 启用仪表视图时注册秒级meter型指标，实现每秒对counter采样记录，用于绘制吞吐量仪表
             flinkxOutput.meter(metricName + Metrics.SUFFIX_RATE, new SimpleLongCounterMeterView(counter, 20));
         }
     }

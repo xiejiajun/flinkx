@@ -69,6 +69,9 @@ public class DtInputFormatSourceFunction<OUT> extends InputFormatSourceFunction<
 
 	private volatile boolean isRunning = true;
 
+	/**
+	 * 保存taskId -> Task State的映射关系
+	 */
     private Map<Integer,FormatState> formatStateMap;
 
     private static final String LOCATION_STATE_NAME = "data-sync-location-states";
@@ -109,6 +112,12 @@ public class DtInputFormatSourceFunction<OUT> extends InputFormatSourceFunction<
 		isRunning = splitIterator.hasNext();
 	}
 
+	/**
+	 * TODO Operator中整个数据处理的流程都在这里，这里是重写了
+	 *  org.apache.flink.streaming.api.functions.source.InputFormatSourceFunction#run(SourceFunction.SourceContext)
+	 * @param ctx
+	 * @throws Exception
+	 */
 	@Override
 	public void run(SourceContext<OUT> ctx) throws Exception {
 		Exception tryException = null;
@@ -121,19 +130,23 @@ public class DtInputFormatSourceFunction<OUT> extends InputFormatSourceFunction<
 
 			OUT nextElement = serializer.createInstance();
 			while (isRunning) {
+				// TODO 调用的是BaseRichInputFormat中的open方法
 				format.open(splitIterator.next());
 
 				// for each element we also check if cancel
 				// was called by checking the isRunning flag
 
+				// TODO JdbcInputFormat/BaseHdfsInputFormat.reachedEnd等
 				while (isRunning && !format.reachedEnd()) {
 				    if(isStream){
+				    	// TODO BaseRichInputFormat.nextRecord: 处理记录
                         nextElement = format.nextRecord(nextElement);
                         if (nextElement != null) {
                             ctx.collect(nextElement);
                         }
                     } else {
                         synchronized (ctx.getCheckpointLock()){
+							// TODO BaseRichInputFormat.nextRecord: 处理记录
                             nextElement = format.nextRecord(nextElement);
                             if (nextElement != null) {
                                 ctx.collect(nextElement);
@@ -141,10 +154,13 @@ public class DtInputFormatSourceFunction<OUT> extends InputFormatSourceFunction<
                         }
                     }
 				}
+				// TODO BaseRichInputFormat.close
 				format.close();
+				// TODO 基于计数器的numSplitsProcessed指标加1
 				completedSplitsCounter.inc();
 
 				if (isRunning) {
+					// TODO 判断是否还有分片
 					isRunning = splitIterator.hasNext();
 				}
 			}
@@ -248,6 +264,7 @@ public class DtInputFormatSourceFunction<OUT> extends InputFormatSourceFunction<
 
 	@Override
 	public void snapshotState(FunctionSnapshotContext context) throws Exception {
+		// TODO 获取自定义状态对象
         FormatState formatState = ((BaseRichInputFormat) format).getFormatState();
         if (formatState != null){
             LOG.info("InputFormat format state:{}", formatState.toString());
@@ -261,12 +278,14 @@ public class DtInputFormatSourceFunction<OUT> extends InputFormatSourceFunction<
 	    LOG.info("Start initialize input format state");
 
 		OperatorStateStore stateStore = context.getOperatorStateStore();
+		// TODO 注册状态
         unionOffsetStates = stateStore.getUnionListState(new ListStateDescriptor<>(
 				LOCATION_STATE_NAME,
 				TypeInformation.of(new TypeHint<FormatState>() {})));
 
         LOG.info("Is restored:{}", context.isRestored());
 		if (context.isRestored()){
+			// TODO 如果是从CheckPoint恢复
 			formatStateMap = new HashMap<>(16);
 			for (FormatState formatState : unionOffsetStates.get()) {
 				formatStateMap.put(formatState.getNumOfSubTask(), formatState);

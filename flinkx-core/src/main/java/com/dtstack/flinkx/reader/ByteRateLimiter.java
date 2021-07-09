@@ -45,6 +45,10 @@ public class ByteRateLimiter {
 
     private RateLimiter rateLimiter;
 
+    /**
+     * 所有subTask每秒允许处理的总Byte数
+     * TODO 从任务json文件的job.setting.speed.bytes解析得出
+     */
     private double expectedBytePerSecond;
 
     private AccumulatorCollector accumulatorCollector;
@@ -80,16 +84,25 @@ public class ByteRateLimiter {
     }
 
     private void updateRate(){
+        // TODO 所有subTask读取到的总bytes数
         long totalBytes = accumulatorCollector.getAccumulatorValue(Metrics.READ_BYTES);
+        // TODO 当前subTask读取到的记录数
         long thisRecords = accumulatorCollector.getLocalAccumulatorValue(Metrics.NUM_READS);
+        // TODO 所有subTask读取到的总记录数
         long totalRecords = accumulatorCollector.getAccumulatorValue(Metrics.NUM_READS);
 
+        // TODO 当前subTask的写出率 = 当前subTask读取的记录数 / 所有subTask读取的总记录数
         BigDecimal thisWriteRatio = BigDecimal.valueOf(totalRecords == 0 ? 0 : thisRecords / (double) totalRecords);
 
+        // TODO 如果所有subTask读取的总记录数大于1000，并且总bytes数不为0, 并且当前subTask的写出率不为0
+        //  (用于确保当前subTask已经读取并处理数据)，则调整当前subTask的限流策略
         if (totalRecords > MIN_RECORD_NUMBER_UPDATE_RATE && totalBytes != 0
                 && thisWriteRatio.compareTo(BigDecimal.ZERO) != 0) {
+            // TODO 计算每条记录的平均byte数
             double bpr = totalBytes / (double)totalRecords;
+            // TODO 当前subTask限流器每秒允许处理的记录数 = json配置文件中设置的每秒允许处理的总byte数 * 当前subTask的处理比例 / 单条记录的平均byte数
             double permitsPerSecond = expectedBytePerSecond / bpr * thisWriteRatio.doubleValue();
+            // TODO 按当前subTask处理数据的占比刷新当前subTask进程内限流器的限流速率
             rateLimiter.setRate(permitsPerSecond);
         }
     }

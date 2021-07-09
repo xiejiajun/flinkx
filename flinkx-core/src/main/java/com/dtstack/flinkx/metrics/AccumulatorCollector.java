@@ -158,6 +158,7 @@ public class AccumulatorCollector {
     }
 
     public void start(){
+        // TODO 定时通过Flink的Rest api拉取指标数据
         scheduledExecutorService.scheduleAtFixedRate(
                 this::collectAccumulator,
                 0,
@@ -186,6 +187,7 @@ public class AccumulatorCollector {
 
     public void collectAccumulator(){
         if(!isLocalMode){
+            // TODO 通过Flink的Rest api拉取指标数据
             collectAccumulatorWithApi();
         }
     }
@@ -197,8 +199,11 @@ public class AccumulatorCollector {
         }
 
         if(isLocalMode){
+            // TODO 本地模式只有一个进程，获取累加器的LocalValue就是指标总值
             return valueAccumulator.getLocal().getLocalValue();
         } else {
+            // TODO 远程模式取Global值，Global值通过定时器定期请求Flink Rest Api更新，Flink Rest APi拉取的值是器聚合后的所有
+            //  Task的累加器总值
             return valueAccumulator.getGlobal();
         }
     }
@@ -222,11 +227,13 @@ public class AccumulatorCollector {
                 for(LinkedTreeMap accumulator : userTaskAccumulators) {
                     String name = (String) accumulator.get(KEY_NAME);
                     if(name != null && !"tableCol".equalsIgnoreCase(name)) {
+                        // TODO 获取累加器的值
                         String accValue = (String) accumulator.get(KEY_VALUE);
                         if(!"null".equals(accValue)){
                             long value = Double.valueOf(accValue).longValue();
                             ValueAccumulator valueAccumulator = valueAccumulatorMap.get(name);
                             if(valueAccumulator != null){
+                                // TODO 设置总值
                                 valueAccumulator.setGlobal(value);
                             }
                         }

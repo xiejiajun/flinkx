@@ -156,18 +156,26 @@ public abstract class BaseRichInputFormat extends org.apache.flink.api.common.io
         checkIfCreateSplitFailed(inputSplit);
 
         if(!inited){
+            // TODO 初始化用于记录读入、写出的条数、字节数等指标的累加器，并启用相关指标全局总值的定时拉取任务
             initAccumulatorCollector();
+            // TODO 初始化统计指标：初始化自定义的Metric
             initStatisticsAccumulator();
+            // TODO 启用记录读取限流器
             openByteRateLimiter();
+            // TODO 初始化当前任务是否是失败恢复，失败恢复模式从CheckPoint读取FormatState对象来初始化
+            //  当前的byte / record等速率指标
+            //  初始化状态
             initRestoreInfo();
 
             if(restoreConfig.isRestore()){
+                // TODO 为FormatState状态对象设置当前subTask的taskId
                 formatState.setNumOfSubTask(indexOfSubTask);
             }
 
             inited = true;
         }
 
+        // TODO 打开读取数据源的连接（根据数据源的不同，每个插件各自实现）
         openInternal(inputSplit);
     }
 
@@ -213,9 +221,12 @@ public abstract class BaseRichInputFormat extends org.apache.flink.api.common.io
     }
 
     private void initAccumulatorCollector(){
+        // TODO task ID为indexOfSubTask的subTask的上次写入路径
         String lastWriteLocation = String.format("%s_%s", Metrics.LAST_WRITE_LOCATION_PREFIX, indexOfSubTask);
+        // TODO // TODO task ID为indexOfSubTask的subTask的上次写入数量
         String lastWriteNum = String.format("%s_%s", Metrics.LAST_WRITE_NUM__PREFIX, indexOfSubTask);
 
+        // TODO monitorUrls在提交任务时通过bin/flinkx命令的-monitor参数指定
         accumulatorCollector = new AccumulatorCollector(jobId, monitorUrls, getRuntimeContext(), 2,
                 Arrays.asList(Metrics.NUM_READS,
                         Metrics.READ_BYTES,
@@ -224,6 +235,8 @@ public abstract class BaseRichInputFormat extends org.apache.flink.api.common.io
                         Metrics.NUM_WRITES,
                         lastWriteLocation,
                         lastWriteNum));
+        // TODO 启动基于Flink Rest api拉取累加器总值刷新全局指标值的刷新定时器：
+        //  subTask内部的累加器的local值只能拿到当前subTask的本地指标，累加器的总值需要通过Flink的Rest APi拉取
         accumulatorCollector.start();
     }
 
@@ -277,6 +290,7 @@ public abstract class BaseRichInputFormat extends org.apache.flink.api.common.io
     @Override
     public Row nextRecord(Row row) throws IOException {
         if(byteRateLimiter != null) {
+            // TODO 阻塞从限流器申请令牌
             byteRateLimiter.acquire();
         }
         Row internalRow = nextRecordInternal(row);
@@ -318,6 +332,7 @@ public abstract class BaseRichInputFormat extends org.apache.flink.api.common.io
      */
     public FormatState getFormatState() {
         if (formatState != null && numReadCounter != null && inputMetric!= null) {
+            // TODO 配置指标采集
             formatState.setMetric(inputMetric.getMetricCounters());
         }
         return formatState;
@@ -335,6 +350,7 @@ public abstract class BaseRichInputFormat extends org.apache.flink.api.common.io
     @Override
     public void close() throws IOException {
         try{
+            // TODO 执行一些清理工作
             closeInternal();
         }catch (Exception e){
             throw new RuntimeException(e);
